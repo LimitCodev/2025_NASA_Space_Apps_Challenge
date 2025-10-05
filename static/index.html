@@ -3,147 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <img src="static/images/logo-nasa.png" alt="Logo NASA" class="logo-nasa">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <title>Dashboard de Calidad del Aire - NASA TEMPO</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .map-container { display: none; margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        #map { height: 400px; width: 100%; border: 2px solid #20B2AA; border-radius: 5px; }
+        #map-info { text-align: center; color: #20B2AA; margin-top: 10px; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <!-- Encabezado -->
-    <header class="header">
-        <h1>Dashboard de Calidad del Aire</h1>
-        <p>Protección de poblaciones vulnerables ante la contaminación del aire.</p>
-    </header>
-
-    <!-- Sección principal -->
+    <!-- Tu header, main, sections existentes (formulario, tarjetas, gráficos) – copia de tu HTML anterior -->
+    <header class="header"><h1>Dashboard de Calidad del Aire</h1><p>Protección de poblaciones vulnerables.</p></header>
     <main class="main-container">
-        <!-- Selección de tipo de persona y ubicación -->
         <section class="selection-section">
             <h2>Configuración</h2>
             <form id="configForm">
                 <div class="input-group">
                     <label for="latitude">Latitud:</label>
-                    <input type="number" id="latitude" name="latitude" value="19.43" step="0.01" required>
+                    <input type="number" id="latitude" value="19.43" step="0.0001" required>
                 </div>
                 <div class="input-group">
                     <label for="longitude">Longitud:</label>
-                    <input type="number" id="longitude" name="longitude" value="-99.13" step="0.01" required>
+                    <input type="number" id="longitude" value="-99.13" step="0.0001" required>
                 </div>
-
                 <h3>¿Quién eres?</h3>
                 <div class="radio-group">
-                    <label>
-                        <input type="radio" name="persona" value="children" checked>
-                        <span>Niños</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="elderly">
-                        <span>Adultos Mayores</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="adults">
-                        <span>Adultos</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="asthmatics">
-                        <span>Asmáticos</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="outdoor_workers">
-                        <span>Trabajadores al Aire Libre</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="schools">
-                        <span>Escuelas</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="persona" value="hospitals">
-                        <span>Hospitales</span>
-                    </label>
+                    <label><input type="radio" name="persona" value="children" checked> Niños</label>
+                    <label><input type="radio" name="persona" value="elderly"> Adultos Mayores</label>
+                    <label><input type="radio" name="persona" value="adults"> Adultos</label>
+                    <label><input type="radio" name="persona" value="asthmatics"> Asmáticos</label>
+                    <label><input type="radio" name="persona" value="outdoor_workers"> Trabajadores al Aire Libre</label>
+                    <label><input type="radio" name="persona" value="schools"> Escuelas</label>
+                    <label><input type="radio" name="persona" value="hospitals"> Hospitales</label>
                 </div>
-                <button type="submit" id="evaluarBtn">Obtener Datos y Recomendaciones</button>
+                <button type="submit" id="evaluarBtn">Obtener Datos</button>
             </form>
         </section>
-
-        <!-- Dashboard de resultados -->
-        <section class="dashboard-section" id="dashboard">
-            <h2>Resultados de Calidad del Aire y Vulnerabilidad</h2>
-
+        <section class="dashboard-section">
+            <h2>Resultados</h2>
             <div class="data-grid">
-                <!-- Calidad del Aire -->
-                <div class="card air-quality-card">
+                <div class="card">
                     <h3>Calidad del Aire</h3>
-                    <p>NO2 Troposférico: <span id="no2Value">--</span> µg/m³</p>
-                    <p>PM2.5: <span id="pm25Value">--</span> µg/m³</p>
-                    <p>Índice de Calidad: <span id="qualityIndex">--</span></p>
+                    <p>NO2: <span id="no2Value">--</span></p>
+                    <p>PM2.5: <span id="pm25Value">--</span></p>
+                    <p>Índice: <span id="qualityIndex">--</span></p>
                     <p>AQI: <span id="aqiValue">--</span></p>
-                    <p class="timestamp">Última actualización: <span id="lastUpdatedAQI">--</span></p>
+                    <p>Actualización: <span id="lastUpdatedAQI">--</span></p>
                 </div>
-
-                <!-- Datos Meteorológicos -->
-                <div class="card weather-card">
+                <div class="card">
                     <h3>Meteorología</h3>
-                    <p>Temperatura: <span id="temperature">--</span> °C</p>
-                    <p>Velocidad del Viento: <span id="windSpeed">--</span> m/s</p>
-                    <p>Humedad: <span id="humidity">--</span> %</p>
+                    <p>Temp: <span id="temperature">--</span></p>
+                    <p>Viento: <span id="windSpeed">--</span></p>
+                    <p>Humedad: <span id="humidity">--</span></p>
                     <p>Condición: <span id="weatherCondition">--</span></p>
                 </div>
-
-                <!-- Análisis de Vulnerabilidad -->
-                <div class="card vulnerability-card">
-                    <h3>Análisis de Vulnerabilidad</h3>
-                    <p>Tipo de Área: <span id="areaType">--</span></p>
-                    <p>Nivel de Riesgo: <span id="riskLevel">--</span></p>
-                    <p>Grupos Vulnerables en Zona: <span id="vulnerableGroups">--</span></p>
-                    <p>Factores de Riesgo: <span id="riskFactors">--</span></p>
-                    <p>Prioridad de Protección: <span id="protectionPriority">--</span></p>
+                <div class="card">
+                    <h3>Vulnerabilidad</h3>
+                    <p>Área: <span id="areaType">--</span></p>
+                    <p>Riesgo: <span id="riskLevel">--</span></p>
+                    <p>Grupos: <span id="vulnerableGroups">--</span></p>
+                    <p>Factores: <span id="riskFactors">--</span></p>
+                    <p>Prioridad: <span id="protectionPriority">--</span></p>
                 </div>
             </div>
-
-            <!-- Recomendaciones -->
-            <div class="card recommendations-card">
-                <h3>Recomendaciones Personalizadas para <span id="selectedPersona">Niños</span></h3>
-                <div id="generalRecommendations">
-                    <h4>Generales:</h4>
-                    <ul class="recommendation-list"></ul>
-                </div>
-                <div id="specificRecommendations">
-                    <!-- Aquí se cargarán las recomendaciones específicas para el grupo seleccionado -->
-                </div>
-                <div id="immediateActions">
-                    <h4>Acciones Inmediatas:</h4>
-                    <ul class="recommendation-list"></ul>
-                </div>
+            <div class="card">
+                <h3>Recomendaciones para <span id="selectedPersona">Niños</span></h3>
+                <div id="generalRecommendations"><h4>Generales:</h4><ul class="recommendation-list"></ul></div>
+                <div id="specificRecommendations"></div>
+                <div id="immediateActions"><h4>Inmediatas:</h4><ul class="recommendation-list"></ul></div>
             </div>
-
-            <!-- Visualizaciones (Histórico y Pronóstico) -->
-            <div class="card visualization-card">
-                <h3>Tendencias y Pronósticos</h3>
-                <div class="chart-container">
-                    <h4>Tendencia Histórica (7 días)</h4>
-                    <canvas id="historicalChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h4>Pronóstico (24 horas)</h4>
-                    <canvas id="forecastChart"></canvas>
-                </div>
+            <div class="card">
+                <h3>Gráficos</h3>
+                <canvas id="historicalChart" width="400" height="200"></canvas>
+                <canvas id="forecastChart" width="400" height="200"></canvas>
             </div>
-
-            <!-- Mapa de Riesgo (Placeholder) -->
-            <div class="card map-card">
-                <h3>Mapa de Riesgo</h3>
-                <div id="riskMap" style="height: 300px; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666;">
-                    [Aquí irá un mapa interactivo con zonas de riesgo]
-                </div>
+            <!-- Mapa aquí -->
+            <div class="card">
+                <section id="map-section" class="map-container">
+                    <h3>Mapa de Riesgo (NASA TEMPO)</h3>
+                    <div id="map"></div>
+                    <p id="map-info">Cargando...</p>
+                </section>
             </div>
-
         </section>
     </main>
+    <footer class="footer"><p>&copy; 2025 NASA TEMPO</p></footer>
 
-    <!-- Pie de página -->
-    <footer class="footer">
-        <p>&copy; 2023 La Chica del Clima - NASA TEMPO. Datos de OpenAQ y Open-Meteo.</p>
-    </footer>
-
-    <script src="/static/js/script.js"></script>
+    <!-- Leaflet JS ANTES de script.js -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="static/js/script.js"></script>
 </body>
 </html>
