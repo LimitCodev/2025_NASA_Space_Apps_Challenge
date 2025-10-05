@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    let map;  // Variable global para el mapa (se reutiliza)
+    window.currentData = {};  // Variable global para datos actuales (para mapa y popups)
+
     // Obtener referencias a los elementos del DOM
     const configForm = document.getElementById('configForm');
     const latitudeInput = document.getElementById('latitude');
@@ -125,6 +128,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             console.log('Datos recibidos del backend:', data);
 
+            // Guarda datos globales para el mapa y popups
+            window.currentData = data;
+
+            // Extrae datos para el mapa del backend (con fallback)
+            const parsedLat = parseFloat(lat) || 19.43;
+            const parsedLon = parseFloat(lon) || -99.13;
+            const riskMapData = data.visualization_data?.risk_map || { 
+                center: [parsedLat, parsedLon], 
+                risk_zones: []  // Fallback: zonas vacías si no hay datos
+            };
+
+            // Inicializa el mapa interactivo
+            initializeMap(riskMapData.center[0], riskMapData.center[1], riskMapData.risk_zones);
+
             // Calidad del Aire
             no2ValueSpan.textContent = data.air_quality.no2_tropospheric;
             pm25ValueSpan.textContent = data.air_quality.pm25 || 'N/D';
@@ -180,6 +197,93 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             evaluarBtn.disabled = false;
             evaluarBtn.textContent = 'Obtener Datos y Recomendaciones';
+        }
+    };
+
+    // Función para inicializar y actualizar el mapa interactivo
+    const initializeMap = (lat, lon, riskZones) => {
+        // Remueve mapa anterior si existe
+        if (map) {
+            map.remove();
+        }
+        
+        // Crea el mapa centrado en lat/lon (zoom 13 para vista de ciudad)
+        map = L.map('map').setView([lat, lon], 13);
+        
+        // Capa base: OpenStreetMap (gratis)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors | Datos simulados de NASA TEMPO & OpenAQ'
+        }).addTo(map);
+        
+        // Marcador principal en la ubicación ingresada
+        const mainMarker = L.marker([lat, lon]).addTo(map);
+        mainMarker.bindPopup(`
+            <b>Ubicación Principal</b><br>
+            Lat: ${lat.toFixed(4)}<br>
+            Lon: ${lon.toFixed(4)}<br>
+            NO2 Actual: ${getNo2FromData().toFixed(1)} ppb<br>
+            Riesgo General: ${getRiskText()}
+        `).openPopup();  // Abre popup automáticamente
+        
+        // Agrega círculos para zonas de riesgo (de backend)
+        riskZones.forEach((zone, index) => {
+            const circle = L.circle([zone.coords[0], zone.coords[1]], {
+                color: getRiskColor(zone.risk),
+                fillColor: getRiskColor(zone.risk),
+                fillOpacity: 0.6,
+                radius: zone.radius || 500,  // Radio en metros
+                weight: 2
+            }).addTo(map);
+            
+            circle.bindPopup(`
+                <b>Zona de Riesgo ${index + 1}</b><br>
+                Nivel: ${zone.risk.toUpperCase()}<br>
+                Radio: ${zone.radius || 500}m<br>
+                Recomendación: ${getZoneRecommendation(zone.risk)}
+            `);
+        });
+        
+        // Actualiza info debajo del mapa
+        const mapInfo = document.getElementById('map-info');
+        if (mapInfo) {
+            mapInfo.innerHTML = `
+                <strong>Mapa actualizado para ${lat.toFixed(4)}, ${lon.toFixed(4)}.</strong><br>
+                ${riskZones.length} zonas de riesgo detectadas. Zoom y pan para explorar.
+            `;
+        }
+        
+        // Muestra la sección del mapa (si existe en HTML)
+        const mapSection = document.getElementById('map-section');
+        if (mapSection) {
+            mapSection.style.display = 'block';
+        }
+    };
+
+    // Función para color de riesgo (usa en círculos y popups)
+    const getRiskColor = (risk) => {
+        switch (risk) {
+            case 'high': return '#FF0000';  // Rojo
+            case 'medium': return '#FFA500';  // Naranja
+            case 'low': return '#00FF00';  // Verde
+            default: return '#20B2AA';  // Turquesa
+        }
+    };
+
+    // Funciones auxiliares para popups del mapa (usa window.currentData)
+    const getNo2FromData = () => {
+        return window.currentData?.air_quality?.no2_tropospheric || 25.5;  // Fallback
+    };
+
+    const getRiskText = () => {
+        return window.currentData?.vulnerability_analysis?.risk_level || 'Bajo';
+    };
+
+    const getZoneRecommendation = (risk) => {
+        switch (risk) {
+            case 'high': return 'Evitar completamente el área (NO2 > 40 ppb).';
+            case 'medium': return 'Monitorear y limitar exposición.';
+            case 'low': return 'Seguro para actividades normales.';
+            default: return 'Evaluar localmente.';
         }
     };
 
