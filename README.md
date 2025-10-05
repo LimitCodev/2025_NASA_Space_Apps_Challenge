@@ -55,7 +55,7 @@ git clone https://github.com/LimitCodev/Nasa_Project.git
 cd Nasa_Project
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
 # Launch the application
 python main.py
