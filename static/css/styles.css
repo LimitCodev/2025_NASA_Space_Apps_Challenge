@@ -1,7 +1,5 @@
-/* Importar fuentes */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap');
 
-/* Variables CSS */
 :root {
     --color-dark-blue: #0A192F;
     --color-accent-cyan: #64FFDA;
@@ -17,7 +15,6 @@
     --aqi-very-bad: #DC3545;
 }
 
-/* Estilos generales */
 body {
     margin: 0;
     font-family: var(--font-main);
@@ -28,7 +25,6 @@ body {
     padding: 20px;
 }
 
-/* Encabezado */
 .header {
     text-align: center;
     padding: 40px 20px;
@@ -54,7 +50,6 @@ body {
     margin: 0 auto;
 }
 
-/* Contenedor principal */
 .main-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -63,7 +58,6 @@ body {
     gap: 30px;
 }
 
-/* Secciones */
 .selection-section, .dashboard-section {
     background-color: var(--color-card-bg);
     padding: 30px;
@@ -87,7 +81,6 @@ body {
     margin-bottom: 15px;
 }
 
-/* Formularios */
 form {
     display: flex;
     flex-direction: column;
@@ -121,7 +114,6 @@ form {
     box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.3);
 }
 
-/* Radio buttons */
 .radio-group {
     display: flex;
     flex-wrap: wrap;
@@ -163,7 +155,6 @@ form {
     border-color: var(--color-accent-cyan);
 }
 
-/* Botón */
 button#evaluarBtn {
     background: linear-gradient(90deg, var(--color-accent-cyan) 0%, #48D1CC 100%);
     color: var(--color-dark-blue);
@@ -189,7 +180,6 @@ button#evaluarBtn:disabled {
     transform: none;
 }
 
-/* Grid de datos */
 .data-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -197,7 +187,10 @@ button#evaluarBtn:disabled {
     margin-bottom: 30px;
 }
 
-/* Tarjetas */
+.data-grid .card h3 {
+    text-align: center;
+}
+
 .card {
     background-color: var(--color-dark-blue);
     padding: 25px;
@@ -206,9 +199,7 @@ button#evaluarBtn:disabled {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease;
 }
-.data-grid .card h3 {
-    text-align: center;
-}
+
 .card:hover {
     transform: translateY(-5px);
 }
@@ -235,7 +226,6 @@ button#evaluarBtn:disabled {
     font-size: 1.1em;
 }
 
-/* Timestamp */
 .timestamp {
     font-size: 0.85em;
     color: var(--color-light-slate);
@@ -243,7 +233,6 @@ button#evaluarBtn:disabled {
     margin-top: 15px;
 }
 
-/* Listas de recomendaciones */
 .recommendation-list {
     list-style: none;
     padding: 0;
@@ -260,7 +249,6 @@ button#evaluarBtn:disabled {
     font-size: 0.95em;
 }
 
-/* Visualizaciones */
 .visualization-card {
     display: flex;
     flex-direction: column;
@@ -282,14 +270,12 @@ button#evaluarBtn:disabled {
     text-align: center;
 }
 
-/* Mapa de riesgo */
 .map-card #riskMap {
     border-radius: 5px;
     overflow: hidden;
     border: 1px solid var(--color-border);
 }
 
-/* Footer */
 .footer {
     text-align: center;
     padding: 30px 20px;
@@ -301,13 +287,11 @@ button#evaluarBtn:disabled {
     border-radius: 8px;
 }
 
-/* Colores de calidad del aire */
 .quality-good { color: var(--aqi-good); font-weight: bold; }
 .quality-moderate { color: var(--aqi-moderate); font-weight: bold; }
 .quality-bad { color: var(--aqi-bad); font-weight: bold; }
 .quality-very-bad { color: var(--aqi-very-bad); font-weight: bold; }
 
-/* Media Queries */
 @media (min-width: 768px) {
     .main-container {
         grid-template-columns: 1fr 2fr;
