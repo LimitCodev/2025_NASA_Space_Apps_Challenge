@@ -1,52 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let map;  // Variable global para el mapa (se reutiliza)
-    window.currentData = {};  // Variable global para datos actuales (para mapa y popups)
+    let map;
+    window.currentData = {};
 
-    // Obtener referencias a los elementos del DOM
     const configForm = document.getElementById('configForm');
     const latitudeInput = document.getElementById('latitude');
     const longitudeInput = document.getElementById('longitude');
     const personaRadios = document.querySelectorAll('input[name="persona"]');
     const evaluarBtn = document.getElementById('evaluarBtn');
 
-    // Elementos para mostrar datos de Calidad del Aire
     const no2ValueSpan = document.getElementById('no2Value');
     const pm25ValueSpan = document.getElementById('pm25Value');
     const qualityIndexSpan = document.getElementById('qualityIndex');
     const aqiValueSpan = document.getElementById('aqiValue');
     const lastUpdatedAQISpan = document.getElementById('lastUpdatedAQI');
 
-    // Elementos para mostrar datos Meteorológicos
     const temperatureSpan = document.getElementById('temperature');
     const windSpeedSpan = document.getElementById('windSpeed');
     const humiditySpan = document.getElementById('humidity');
     const weatherConditionSpan = document.getElementById('weatherCondition');
 
-    // Elementos para mostrar Análisis de Vulnerabilidad
     const areaTypeSpan = document.getElementById('areaType');
     const riskLevelSpan = document.getElementById('riskLevel');
     const vulnerableGroupsSpan = document.getElementById('vulnerableGroups');
     const riskFactorsSpan = document.getElementById('riskFactors');
     const protectionPrioritySpan = document.getElementById('protectionPriority');
 
-    // Elementos para mostrar Recomendaciones
     const selectedPersonaSpan = document.getElementById('selectedPersona');
     const generalRecommendationsList = document.querySelector('#generalRecommendations .recommendation-list');
     const specificRecommendationsDiv = document.getElementById('specificRecommendations');
     const immediateActionsList = document.querySelector('#immediateActions .recommendation-list');
 
-    // Variables para instancias de gráficos
     let historicalChartInstance = null;
     let forecastChartInstance = null;
 
-    // Función para actualizar las recomendaciones en la interfaz
     const updateRecommendations = (recommendations, selectedPersona) => {
-        // Limpiar listas
         generalRecommendationsList.innerHTML = '';
         specificRecommendationsDiv.innerHTML = '';
         immediateActionsList.innerHTML = '';
 
-        // Recomendaciones generales
         if (recommendations.general && recommendations.general.length > 0) {
             recommendations.general.forEach(rec => {
                 const li = document.createElement('li');
@@ -59,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
             generalRecommendationsList.appendChild(li);
         }
 
-        // Recomendaciones específicas según el grupo seleccionado
         const personaKeyMap = {
             'children': 'for_schools',
             'elderly': 'for_elderly',
@@ -88,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             specificRecommendationsDiv.appendChild(ul);
         }
 
-        // Acciones inmediatas
         if (recommendations.immediate_actions && recommendations.immediate_actions.length > 0) {
             recommendations.immediate_actions.forEach(action => {
                 const li = document.createElement('li');
@@ -104,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Función para obtener y mostrar los datos del dashboard
     const fetchDashboardData = async () => {
         const lat = latitudeInput.value;
         const lon = longitudeInput.value;
@@ -128,28 +116,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             console.log('Datos recibidos del backend:', data);
 
-            // Guarda datos globales para el mapa y popups
             window.currentData = data;
 
-            // Extrae datos para el mapa del backend (con fallback)
             const parsedLat = parseFloat(lat) || 19.43;
             const parsedLon = parseFloat(lon) || -99.13;
             const riskMapData = data.visualization_data?.risk_map || { 
                 center: [parsedLat, parsedLon], 
-                risk_zones: []  // Fallback: zonas vacías si no hay datos
+                risk_zones: []
             };
 
-            // Inicializa el mapa interactivo
             initializeMap(riskMapData.center[0], riskMapData.center[1], riskMapData.risk_zones);
 
-            // Calidad del Aire
             no2ValueSpan.textContent = data.air_quality.no2_tropospheric;
             pm25ValueSpan.textContent = data.air_quality.pm25 || 'N/D';
             qualityIndexSpan.textContent = data.air_quality.quality_index;
             aqiValueSpan.textContent = data.air_quality.aqi_value;
             lastUpdatedAQISpan.textContent = new Date(data.air_quality.timestamp).toLocaleString();
 
-            // Aplicar color al AQI según la calidad
             aqiValueSpan.className = '';
             qualityIndexSpan.className = '';
             switch (data.air_quality.quality_index) {
@@ -171,13 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
             }
 
-            // Meteorología
             temperatureSpan.textContent = data.weather.temperature || 'N/D';
             windSpeedSpan.textContent = data.weather.wind_speed || 'N/D';
             humiditySpan.textContent = data.weather.humidity || 'N/D';
             weatherConditionSpan.textContent = data.weather.condition || 'N/D';
 
-            // Análisis de Vulnerabilidad
             areaTypeSpan.textContent = data.vulnerability_analysis.area_type || 'N/D';
             riskLevelSpan.textContent = data.vulnerability_analysis.risk_level || 'N/D';
             vulnerableGroupsSpan.textContent = (data.vulnerability_analysis.vulnerable_groups || [])
@@ -185,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
             riskFactorsSpan.textContent = (data.vulnerability_analysis.risk_factors || []).join(', ') || 'N/D';
             protectionPrioritySpan.textContent = data.vulnerability_analysis.protection_priority || 'N/D';
 
-            // Recomendaciones
             updateRecommendations(data.recommendations, selectedPersona);
 
-            // Gráficos
             renderCharts(data.visualization_data.historical_trend, data.visualization_data.forecast);
 
         } catch (error) {
@@ -200,22 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Función para inicializar y actualizar el mapa interactivo
     const initializeMap = (lat, lon, riskZones) => {
-        // Remueve mapa anterior si existe
         if (map) {
             map.remove();
         }
         
-        // Crea el mapa centrado en lat/lon (zoom 13 para vista de ciudad)
         map = L.map('map').setView([lat, lon], 13);
         
-        // Capa base: OpenStreetMap (gratis)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors | Datos simulados de NASA TEMPO & OpenAQ'
         }).addTo(map);
         
-        // Marcador principal en la ubicación ingresada
         const mainMarker = L.marker([lat, lon]).addTo(map);
         mainMarker.bindPopup(`
             <b>Ubicación Principal</b><br>
@@ -223,15 +197,14 @@ document.addEventListener('DOMContentLoaded', () => {
             Lon: ${lon.toFixed(4)}<br>
             NO2 Actual: ${getNo2FromData().toFixed(1)} ppb<br>
             Riesgo General: ${getRiskText()}
-        `).openPopup();  // Abre popup automáticamente
+        `).openPopup();
         
-        // Agrega círculos para zonas de riesgo (de backend)
         riskZones.forEach((zone, index) => {
             const circle = L.circle([zone.coords[0], zone.coords[1]], {
                 color: getRiskColor(zone.risk),
                 fillColor: getRiskColor(zone.risk),
                 fillOpacity: 0.6,
-                radius: zone.radius || 500,  // Radio en metros
+                radius: zone.radius || 500,
                 weight: 2
             }).addTo(map);
             
@@ -243,7 +216,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `);
         });
         
-        // Actualiza info debajo del mapa
         const mapInfo = document.getElementById('map-info');
         if (mapInfo) {
             mapInfo.innerHTML = `
@@ -252,26 +224,23 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
         
-        // Muestra la sección del mapa (si existe en HTML)
         const mapSection = document.getElementById('map-section');
         if (mapSection) {
             mapSection.style.display = 'block';
         }
     };
 
-    // Función para color de riesgo (usa en círculos y popups)
     const getRiskColor = (risk) => {
         switch (risk) {
-            case 'high': return '#FF0000';  // Rojo
-            case 'medium': return '#FFA500';  // Naranja
-            case 'low': return '#00FF00';  // Verde
-            default: return '#20B2AA';  // Turquesa
+            case 'high': return '#FF0000';
+            case 'medium': return '#FFA500';
+            case 'low': return '#00FF00';
+            default: return '#20B2AA';
         }
     };
 
-    // Funciones auxiliares para popups del mapa (usa window.currentData)
     const getNo2FromData = () => {
-        return window.currentData?.air_quality?.no2_tropospheric || 25.5;  // Fallback
+        return window.currentData?.air_quality?.no2_tropospheric || 25.5;
     };
 
     const getRiskText = () => {
@@ -287,7 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Función auxiliar para obtener el nombre legible del grupo de persona
     const getPersonaDisplayName = (personaValue) => {
         const displayNames = {
             'children': 'Niños',
@@ -303,9 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return displayNames[personaValue] || 'General';
     };
 
-    // Función para renderizar los gráficos
     const renderCharts = (historicalData, forecastData) => {
-        // Destruir gráficos existentes antes de crear nuevos
         if (historicalChartInstance) {
             historicalChartInstance.destroy();
         }
@@ -373,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Event Listeners
     configForm.addEventListener('submit', (event) => {
         event.preventDefault();
         fetchDashboardData();
@@ -386,6 +351,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Cargar datos iniciales al cargar la página
     fetchDashboardData();
 });
