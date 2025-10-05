@@ -10,7 +10,6 @@ import json
 app = FastAPI(title="La Chica del Clima - NASA TEMPO", 
               description="Dashboard para protección de poblaciones vulnerables ante la contaminación del aire")
 
-# Servir el frontend y archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
@@ -21,44 +20,34 @@ class AdvancedTempoProcessor:
     def __init__(self):
         self.openaq_url = "https://api.openaq.org/v2/latest"
         self.weather_url = "https://api.open-meteo.com/v1/forecast"
-        # Cache simple en memoria
         self.cache = {}
-        self.cache_ttl = 300  # 5 minutos
+        self.cache_ttl = 300
     
     def get_air_quality_dashboard(self, lat: float, lon: float):
-        """Obtiene datos COMPLETOS para dashboard con enfoque en vulnerabilidad"""
-        # Crear key de cache redondeando coordenadas
         cache_key = f"{round(lat, 2)}_{round(lon, 2)}"
         
-        # Verificar cache
         if cache_key in self.cache:
             cached_data, timestamp = self.cache[cache_key]
             if (datetime.utcnow() - timestamp).seconds < self.cache_ttl:
                 return cached_data
         
         try:
-            # Datos de calidad del aire REALES
             openaq_data = self._get_openaq_data(lat, lon)
             weather_data = self._get_weather_data(lat, lon)
             
-            # Simulación TEMPO científica
             tempo_simulation = self._simulate_tempo_advanced(lat, lon, weather_data)
             
-            # Análisis de vulnerabilidad
             vulnerability_analysis = self._analyze_vulnerability(lat, lon, tempo_simulation['no2'])
             
-            # Recomendaciones específicas
             recommendations = self._generate_recommendations(
                 tempo_simulation['no2'], 
                 vulnerability_analysis['risk_level'],
                 vulnerability_analysis['vulnerable_groups']
             )
             
-            # Datos históricos para tendencias
             historical_trend = self._generate_historical_trend(lat, lon)
             
             result = {
-                # Datos científicos
                 'air_quality': {
                     'no2_tropospheric': round(tempo_simulation['no2'], 2),
                     'pm25': openaq_data.get('pm25', 15.5),
@@ -67,7 +56,6 @@ class AdvancedTempoProcessor:
                     'timestamp': datetime.utcnow().isoformat()
                 },
                 
-                # Datos meteorológicos
                 'weather': {
                     'temperature': weather_data.get('temperature'),
                     'wind_speed': weather_data.get('wind_speed'),
@@ -75,13 +63,10 @@ class AdvancedTempoProcessor:
                     'condition': self._get_weather_condition(weather_data)
                 },
                 
-                # Análisis de impacto social
                 'vulnerability_analysis': vulnerability_analysis,
                 
-                # Recomendaciones accionables
                 'recommendations': recommendations,
                 
-                # Datos para visualizaciones
                 'visualization_data': {
                     'historical_trend': historical_trend,
                     'forecast': self._generate_forecast(lat, lon),
@@ -96,7 +81,6 @@ class AdvancedTempoProcessor:
                 }
             }
             
-            # Guardar en cache
             self.cache[cache_key] = (result, datetime.utcnow())
             
             return result
@@ -106,7 +90,6 @@ class AdvancedTempoProcessor:
             return self._get_fallback_dashboard(lat, lon)
 
     def _analyze_vulnerability(self, lat: float, lon: float, no2_level: float):
-        """Analiza vulnerabilidad de la zona"""
         area_type = self._classify_area(lat, lon)
         vulnerable_groups = self._identify_vulnerable_groups(area_type)
         risk_level = self._calculate_risk_level(no2_level, area_type)
@@ -120,7 +103,6 @@ class AdvancedTempoProcessor:
         }
 
     def _generate_recommendations(self, no2_level: float, risk_level: str, vulnerable_groups: list):
-        """Genera recomendaciones específicas para grupos vulnerables"""
         recommendations = {
             'general': [],
             'for_schools': [],
@@ -129,7 +111,6 @@ class AdvancedTempoProcessor:
             'immediate_actions': []
         }
         
-        # Recomendaciones generales basadas en calidad del aire
         if no2_level > 40:
             recommendations['general'].extend([
                 "Evitar actividades al aire libre prolongadas",
@@ -145,7 +126,6 @@ class AdvancedTempoProcessor:
         else:
             recommendations['general'].append("Calidad del aire aceptable, tomar precauciones normales")
         
-        # Recomendaciones para escuelas
         if 'schools' in vulnerable_groups:
             if no2_level > 35:
                 recommendations['for_schools'].extend([
@@ -159,7 +139,6 @@ class AdvancedTempoProcessor:
                     "Monitorear estudiantes con asma o condiciones respiratorias"
                 ])
         
-        # Recomendaciones para adultos mayores
         if 'elderly' in vulnerable_groups:
             if no2_level > 30:
                 recommendations['for_elderly'].extend([
@@ -173,7 +152,6 @@ class AdvancedTempoProcessor:
                     "Tener medicamentos respiratorios a mano"
                 ])
         
-        # Recomendaciones para hospitales
         if 'hospitals' in vulnerable_groups:
             if no2_level > 30:
                 recommendations['for_health_centers'].extend([
@@ -185,27 +163,20 @@ class AdvancedTempoProcessor:
         return recommendations
 
     def _classify_area(self, lat: float, lon: float) -> str:
-        """Clasifica el tipo de área para análisis de vulnerabilidad"""
-        # Ciudad de México
         if abs(lat - 19.43) < 0.5 and abs(lon + 99.13) < 0.5:
             return "urban_center"
-        # Nueva York
         elif abs(lat - 40.7) < 0.5 and abs(lon + 74.0) < 0.5:
             return "urban_center"
-        # Los Ángeles
         elif abs(lat - 34.0) < 0.5 and abs(lon + 118.2) < 0.5:
             return "urban_center"
-        # Monterrey (zona industrial)
         elif abs(lat - 25.7) < 1.0 and abs(lon + 100.3) < 1.0:
             return "industrial"
-        # Tijuana
         elif abs(lat - 32.5) < 1.0 and abs(lon + 117.0) < 1.0:
             return "industrial"
         else:
             return "residential"
 
     def _identify_vulnerable_groups(self, area_type: str) -> list:
-        """Identifica grupos vulnerables según el tipo de área"""
         groups = ['children', 'elderly', 'asthmatics']
         
         if area_type == "urban_center":
@@ -218,7 +189,6 @@ class AdvancedTempoProcessor:
         return groups
 
     def _calculate_risk_level(self, no2_level: float, area_type: str) -> str:
-        """Calcula nivel de riesgo considerando contaminación y vulnerabilidad"""
         base_risk = "Bajo"
         if no2_level > 60:
             base_risk = "Muy Alto"
@@ -227,14 +197,12 @@ class AdvancedTempoProcessor:
         elif no2_level > 20:
             base_risk = "Moderado"
         
-        # Ajustar riesgo según vulnerabilidad del área
         if area_type in ["urban_center", "industrial"] and base_risk in ["Moderado", "Alto"]:
             return "Alto" if base_risk == "Moderado" else "Muy Alto"
             
         return base_risk
 
     def _generate_historical_trend(self, lat: float, lon: float):
-        """Genera tendencia histórica simulada"""
         days = 7
         trend = []
         
@@ -250,13 +218,11 @@ class AdvancedTempoProcessor:
         return trend
 
     def _generate_forecast(self, lat: float, lon: float):
-        """Genera pronóstico de 24 horas"""
         forecast = []
         current_hour = datetime.utcnow().hour
         
         for hour in range(24):
             future_hour = (current_hour + hour) % 24
-            # Patrón diurno de contaminación
             traffic_peak = 2.0 if (7 <= future_hour <= 9) or (17 <= future_hour <= 19) else 1.0
             base_no2 = 8 + abs(lat) * 0.3 * traffic_peak
             
@@ -269,7 +235,6 @@ class AdvancedTempoProcessor:
         return forecast
 
     def _get_openaq_data(self, lat, lon, radius=50000):
-        """Obtiene datos REALES de OpenAQ"""
         try:
             params = {
                 'coordinates': f"{lat},{lon}",
@@ -290,7 +255,6 @@ class AdvancedTempoProcessor:
             return {}
 
     def _get_weather_data(self, lat, lon):
-        """Obtiene datos meteorológicos REALES"""
         try:
             params = {
                 'latitude': lat,
@@ -315,7 +279,6 @@ class AdvancedTempoProcessor:
             return {}
 
     def _simulate_tempo_advanced(self, lat, lon, weather_data):
-        """Simulación avanzada de TEMPO"""
         urban_factor = 2.5 if self._is_urban_area(lat, lon) else 1.0
         hour = datetime.utcnow().hour
         traffic_pattern = 1.0 + 0.5 * np.sin((hour - 8) * np.pi / 12)
@@ -328,13 +291,12 @@ class AdvancedTempoProcessor:
         return {'no2': max(1.0, final_no2 + np.random.normal(0, 1.5))}
 
     def _is_urban_area(self, lat, lon):
-        """Determina si es área urbana"""
         major_cities = [
-            (19.43, -99.13),  # CDMX
-            (40.7, -74.0),    # NYC
-            (34.0, -118.2),   # LA
-            (25.7, -100.3),   # Monterrey
-            (32.5, -117.0)    # San Diego
+            (19.43, -99.13),
+            (40.7, -74.0),
+            (34.0, -118.2),
+            (25.7, -100.3),
+            (32.5, -117.0)
         ]
         return any(abs(lat - city[0]) < 2 and abs(lon - city[1]) < 2 for city in major_cities)
 
@@ -345,21 +307,18 @@ class AdvancedTempoProcessor:
         else: return 'Muy Mala'
 
     def _calculate_aqi(self, no2_value):
-        """Calcula índice AQI simplificado"""
         if no2_value < 20: return 25
         elif no2_value < 40: return 50
         elif no2_value < 60: return 75
         else: return 100
 
     def _get_weather_condition(self, weather_data):
-        """Determina condición climática"""
         temp = weather_data.get('temperature', 20)
         if temp > 30: return "Caluroso"
         elif temp > 20: return "Templado"
         else: return "Frío"
 
     def _get_risk_factors(self, area_type, no2_level):
-        """Identifica factores de riesgo específicos"""
         factors = []
         if no2_level > 30:
             factors.append("Alta concentración de NO2")
@@ -372,7 +331,6 @@ class AdvancedTempoProcessor:
         return factors
 
     def _generate_risk_map_data(self, lat, lon):
-        """Genera datos para mapa de riesgo"""
         return {
             'center': [lat, lon],
             'risk_zones': [
@@ -385,7 +343,6 @@ class AdvancedTempoProcessor:
         }
 
     def _get_fallback_dashboard(self, lat, lon):
-        """Dashboard de respaldo"""
         return {
             'air_quality': {
                 'no2_tropospheric': 15.0,
@@ -427,13 +384,10 @@ class AdvancedTempoProcessor:
             }
         }
 
-# Instanciar el procesador
 processor = AdvancedTempoProcessor()
 
-# Endpoints de la API
 @app.get("/api/dashboard")
 async def get_dashboard_data(lat: float, lon: float):
-    """Endpoint principal para obtener datos del dashboard"""
     try:
         data = processor.get_air_quality_dashboard(lat, lon)
         return data
@@ -445,7 +399,6 @@ async def get_dashboard_data(lat: float, lon: float):
 
 @app.get("/api/health")
 async def health_check():
-    """Endpoint de health check"""
     return {"status": "healthy", "service": "La Chica del Clima API"}
 
 if __name__ == "__main__":
