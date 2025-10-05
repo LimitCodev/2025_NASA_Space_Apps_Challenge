@@ -11,8 +11,8 @@ A web-based dashboard designed to protect vulnerable populations from air pollut
 - **Risk Mapping:** Visual representation of high-risk zones
 
 ## 🛠 Technologies Used
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
-- **Backend:** FastAPI, Python 3.10+
+- **Frontend:** HTML5, CSS3, JavaScript
+- **Backend:** FastAPI, Python 3.10
 - **Data Sources:** 
   - NASA TEMPO API (Air quality data)
   - OpenAQ API (Additional air quality metrics)
