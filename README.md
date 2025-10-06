@@ -58,7 +58,7 @@ cd Nasa_Project
 python -m pip install -r requirements.txt
 
 # Launch the application
-python main.py
+py main.py
 
 # Access the dashboard
 # Open http://localhost:8000 in your browser
