@@ -33,6 +33,184 @@ document.addEventListener('DOMContentLoaded', () => {
     let historicalChartInstance = null;
     let forecastChartInstance = null;
 
+    // Función para obtener recomendaciones personalizadas
+    const getCustomRecommendations = (selectedPersona, airQualityIndex) => {
+        const recommendations = {
+            children: {
+                'Buena': {
+                    general: ['Perfecto para jugar al aire libre', 'Disfrutar actividades deportivas sin restricción'],
+                    specific: ['Ideal para recreos escolares prolongados', 'Pueden realizar educación física normal'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Reducir actividades intensas al aire libre', 'Preferir juegos en interiores'],
+                    specific: ['Limitar recreos a 20-30 minutos', 'Evitar deportes de alta intensidad'],
+                    immediate: ['Supervisar a niños con asma de cerca']
+                },
+                'Mala': {
+                    general: ['Evitar juegos al aire libre', 'Mantener ventanas cerradas'],
+                    specific: ['Cancelar clases de educación física', 'Recreos solo en interiores'],
+                    immediate: ['Contactar a padres de niños vulnerables', 'Tener inhaladores disponibles']
+                },
+                'Muy Mala': {
+                    general: ['Permanecer en interiores', 'No salir bajo ninguna circunstancia'],
+                    specific: ['Suspender clases presenciales si es posible', 'Cerrar escuelas en zonas críticas'],
+                    immediate: ['Evacuación inmediata de niños con problemas respiratorios', 'Activar protocolo de emergencia escolar']
+                }
+            },
+            elderly: {
+                'Buena': {
+                    general: ['Disfrute de caminatas tranquilas', 'Ventile su hogar normalmente'],
+                    specific: ['Puede realizar ejercicio ligero al aire libre', 'Ideal para paseos matutinos'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Reduzca el tiempo al aire libre', 'Evite esfuerzos físicos'],
+                    specific: ['Caminatas cortas de máximo 15 minutos', 'Preferir horarios de menor contaminación'],
+                    immediate: ['Tenga sus medicamentos a mano']
+                },
+                'Mala': {
+                    general: ['Permanezca en interiores', 'Use purificadores de aire'],
+                    specific: ['Cancele actividades al aire libre', 'Monitoree síntomas respiratorios'],
+                    immediate: ['Contacte a su médico si siente molestias', 'Tenga oxígeno disponible si lo requiere']
+                },
+                'Muy Mala': {
+                    general: ['No salga de casa', 'Selle puertas y ventanas'],
+                    specific: ['Considere reubicación temporal', 'Monitoreo médico constante'],
+                    immediate: ['Llame a emergencias si tiene dificultad para respirar', 'Active red de apoyo familiar']
+                }
+            },
+            adults: {
+                'Buena': {
+                    general: ['Condiciones ideales para actividades normales', 'Ejercicio sin restricciones'],
+                    specific: ['Puede hacer deportes intensos', 'Ideal para actividades al aire libre'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Reduzca ejercicio intenso prolongado', 'Monitoree su respiración'],
+                    specific: ['Limite entrenamientos a 45 minutos', 'Evite horas pico de tráfico'],
+                    immediate: []
+                },
+                'Mala': {
+                    general: ['Evite ejercicio al aire libre', 'Use cubrebocas N95 si debe salir'],
+                    specific: ['Ejercicio solo en gimnasios cerrados', 'Trabaje desde casa si es posible'],
+                    immediate: ['Tenga antihistamínicos disponibles']
+                },
+                'Muy Mala': {
+                    general: ['Permanezca en interiores', 'Cierre ventanas y puertas'],
+                    specific: ['No salga salvo emergencia', 'Use purificadores de aire'],
+                    immediate: ['Use mascarilla N95 si debe salir', 'Evite cualquier esfuerzo físico']
+                }
+            },
+            asthmatics: {
+                'Buena': {
+                    general: ['Condiciones seguras', 'Puede realizar actividades normales'],
+                    specific: ['Lleve su inhalador de rescate', 'Ejercicio moderado permitido'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Limite actividades al aire libre', 'Esté alerta a síntomas'],
+                    specific: ['Use inhalador preventivo antes de salir', 'Evite áreas con mucho tráfico'],
+                    immediate: ['Tenga su plan de acción para asma listo']
+                },
+                'Mala': {
+                    general: ['Permanezca en interiores', 'No haga ejercicio'],
+                    specific: ['Use inhalador preventivo cada 4-6 horas', 'Evite cualquier irritante adicional'],
+                    immediate: ['Contacte a su médico', 'Tenga medicamento de emergencia disponible']
+                },
+                'Muy Mala': {
+                    general: ['Alerta máxima', 'No salga bajo ninguna circunstancia'],
+                    specific: ['Monitoreo constante de saturación de oxígeno', 'Aumente dosis preventiva según indicación médica'],
+                    immediate: ['Vaya a urgencias si tiene sibilancias o dificultad respiratoria', 'Tenga nebulizador listo']
+                }
+            },
+            outdoor_workers: {
+                'Buena': {
+                    general: ['Trabajo normal sin restricciones', 'Manténgase hidratado'],
+                    specific: ['Puede laborar jornada completa', 'Use protección solar'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Reduzca ritmo de trabajo', 'Tome descansos frecuentes'],
+                    specific: ['Limite trabajos pesados a 6 horas', 'Use cubrebocas en áreas con polvo'],
+                    immediate: ['Tenga agua disponible constantemente']
+                },
+                'Mala': {
+                    general: ['Suspenda trabajos no esenciales', 'Use equipo de protección'],
+                    specific: ['Mascarilla N95 obligatoria', 'Turnos reducidos a 4 horas máximo'],
+                    immediate: ['Reporte síntomas respiratorios inmediatamente', 'Trabajos críticos solo con protección completa']
+                },
+                'Muy Mala': {
+                    general: ['Suspenda labores al aire libre', 'Emergencia laboral'],
+                    specific: ['Solo personal de emergencia con equipo especializado', 'Reubique operaciones a interiores'],
+                    immediate: ['Evacue área si es posible', 'Atención médica para cualquier síntoma']
+                }
+            },
+            schools: {
+                'Buena': {
+                    general: ['Actividades escolares normales', 'Ventilación natural adecuada'],
+                    specific: ['Educación física sin restricción', 'Recreos prolongados permitidos'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Limitar actividades al aire libre', 'Monitorear estudiantes sensibles'],
+                    specific: ['Reducir tiempo de recreo a 20 minutos', 'Educación física moderada'],
+                    immediate: ['Notificar a padres de niños vulnerables']
+                },
+                'Mala': {
+                    general: ['Suspender actividades al aire libre', 'Cerrar ventanas'],
+                    specific: ['Cancelar educación física', 'Recreos solo en interiores'],
+                    immediate: ['Activar protocolo de calidad del aire', 'Contactar autoridades de salud']
+                },
+                'Muy Mala': {
+                    general: ['Considerar cierre temporal', 'Clases virtuales'],
+                    specific: ['Suspensión de clases presenciales', 'Solo personal administrativo esencial'],
+                    immediate: ['Notificación inmediata a padres', 'Coordinación con autoridades educativas']
+                }
+            },
+            hospitals: {
+                'Buena': {
+                    general: ['Operación normal', 'Ventilación estándar'],
+                    specific: ['Pacientes pueden usar áreas exteriores', 'Visitas sin restricción'],
+                    immediate: []
+                },
+                'Moderada': {
+                    general: ['Monitoreo aumentado', 'Reforzar filtración de aire'],
+                    specific: ['Limitar tiempo de pacientes en exteriores', 'Alertar a pacientes respiratorios'],
+                    immediate: ['Aumentar disponibilidad de inhaladores y oxígeno']
+                },
+                'Mala': {
+                    general: ['Protocolo de emergencia ambiental', 'Sellado de instalaciones'],
+                    specific: ['Prohibir salidas de pacientes', 'Reforzar UCI y urgencias'],
+                    immediate: ['Preparar para aumento de consultas respiratorias', 'Activar equipo de respuesta']
+                },
+                'Muy Mala': {
+                    general: ['Alerta máxima hospitalaria', 'Plan de contingencia total'],
+                    specific: ['Solo ingresos de emergencia', 'Máxima capacidad de atención respiratoria'],
+                    immediate: ['Coordinar con otros hospitales', 'Solicitar apoyo gubernamental']
+                }
+            }
+        };
+
+        const personaRecs = recommendations[selectedPersona];
+        if (!personaRecs || !personaRecs[airQualityIndex]) {
+            return {
+                general: ['No hay recomendaciones disponibles para esta combinación'],
+                specific: [],
+                immediate: []
+            };
+        }
+
+        const recs = personaRecs[airQualityIndex];
+        return {
+            general: recs.general,
+            for_schools: recs.specific,
+            for_elderly: recs.specific,
+            for_health_centers: recs.specific,
+            immediate_actions: recs.immediate
+        };
+    };
+
     const updateRecommendations = (recommendations, selectedPersona) => {
         generalRecommendationsList.innerHTML = '';
         specificRecommendationsDiv.innerHTML = '';
@@ -166,7 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
             riskFactorsSpan.textContent = (data.vulnerability_analysis.risk_factors || []).join(', ') || 'N/D';
             protectionPrioritySpan.textContent = data.vulnerability_analysis.protection_priority || 'N/D';
 
-            updateRecommendations(data.recommendations, selectedPersona);
+            const customRecs = getCustomRecommendations(selectedPersona, data.air_quality.quality_index);
+            updateRecommendations(customRecs, selectedPersona);
 
             renderCharts(data.visualization_data.historical_trend, data.visualization_data.forecast);
 
@@ -175,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('No se pudieron cargar los datos del dashboard. Inténtalo de nuevo más tarde.');
         } finally {
             evaluarBtn.disabled = false;
-            evaluarBtn.textContent = 'Obtener Datos y Recomendaciones';
+            evaluarBtn.textContent = 'Obtener Datos';
         }
     };
 
