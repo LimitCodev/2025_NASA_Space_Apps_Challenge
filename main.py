@@ -111,14 +111,14 @@ class AdvancedTempoProcessor:
             'immediate_actions': []
         }
         
-        if no2_level > 40:
+        if no2_level > 80:
             recommendations['general'].extend([
                 "Evitar actividades al aire libre prolongadas",
                 "Usar mascarilla en exteriores",
                 "Mantener ventanas cerradas"
             ])
             recommendations['immediate_actions'].append("Activar protocolos de calidad del aire")
-        elif no2_level > 20:
+        elif no2_level > 50:
             recommendations['general'].extend([
                 "Limitar actividades físicas intensas al aire libre",
                 "Monitorear síntomas respiratorios"
@@ -127,33 +127,33 @@ class AdvancedTempoProcessor:
             recommendations['general'].append("Calidad del aire aceptable, tomar precauciones normales")
         
         if 'schools' in vulnerable_groups:
-            if no2_level > 35:
+            if no2_level > 70:
                 recommendations['for_schools'].extend([
                     "Suspender educación física al aire libre",
                     "Mantener estudiantes en interiores durante recreo",
                     "Activar sistema de purificación de aire en aulas"
                 ])
-            elif no2_level > 20:
+            elif no2_level > 50:
                 recommendations['for_schools'].extend([
                     "Reducir tiempo de actividades al aire libre",
                     "Monitorear estudiantes con asma o condiciones respiratorias"
                 ])
         
         if 'elderly' in vulnerable_groups:
-            if no2_level > 30:
+            if no2_level > 60:
                 recommendations['for_elderly'].extend([
                     "Evitar salidas no esenciales",
                     "Realizar ejercicios en interiores",
                     "Monitorear síntomas respiratorios"
                 ])
-            elif no2_level > 20:
+            elif no2_level > 50:
                 recommendations['for_elderly'].extend([
                     "Limitar tiempo al aire libre",
                     "Tener medicamentos respiratorios a mano"
                 ])
         
         if 'hospitals' in vulnerable_groups:
-            if no2_level > 30:
+            if no2_level > 60:
                 recommendations['for_health_centers'].extend([
                     "Prepararse para posible aumento de casos respiratorios",
                     "Revisar inventario de medicamentos para asma",
@@ -164,24 +164,35 @@ class AdvancedTempoProcessor:
 
     def _classify_area(self, lat: float, lon: float) -> str:
         if abs(lat - 19.43) < 0.5 and abs(lon + 99.13) < 0.5:
-            return "urban_center"
+            return "urban_center_high"
         elif abs(lat - 40.7) < 0.5 and abs(lon + 74.0) < 0.5:
             return "urban_center"
         elif abs(lat - 34.0) < 0.5 and abs(lon + 118.2) < 0.5:
-            return "urban_center"
+            return "urban_center_high"
         elif abs(lat - 25.7) < 1.0 and abs(lon + 100.3) < 1.0:
-            return "industrial"
+            return "industrial_heavy"
         elif abs(lat - 32.5) < 1.0 and abs(lon + 117.0) < 1.0:
             return "industrial"
+        elif abs(lat - 28.6) < 1.0 and abs(lon - 77.2) < 1.0:
+            return "urban_center_extreme"
+        elif abs(lat - 39.9) < 1.0 and abs(lon - 116.4) < 1.0:
+            return "urban_center_extreme"
+        elif self._is_major_urban(lat, lon):
+            return "urban_center"
         else:
             return "residential"
+
+    def _is_major_urban(self, lat, lon):
+        return abs(lat) > 10 and abs(lat) < 60
 
     def _identify_vulnerable_groups(self, area_type: str) -> list:
         groups = ['children', 'elderly', 'asthmatics']
         
-        if area_type == "urban_center":
+        if area_type in ["urban_center_high", "urban_center_extreme"]:
+            groups.extend(['schools', 'hospitals', 'outdoor_workers', 'low_income'])
+        elif area_type == "urban_center":
             groups.extend(['schools', 'hospitals', 'outdoor_workers'])
-        elif area_type == "industrial":
+        elif area_type in ["industrial", "industrial_heavy"]:
             groups.extend(['schools', 'low_income', 'outdoor_workers'])
         elif area_type == "residential":
             groups.extend(['schools', 'elderly_communities'])
@@ -190,29 +201,43 @@ class AdvancedTempoProcessor:
 
     def _calculate_risk_level(self, no2_level: float, area_type: str) -> str:
         base_risk = "Bajo"
-        if no2_level > 60:
+        if no2_level > 150:
             base_risk = "Muy Alto"
-        elif no2_level > 40:
+        elif no2_level > 100:
             base_risk = "Alto"
-        elif no2_level > 20:
+        elif no2_level > 50:
             base_risk = "Moderado"
         
-        if area_type in ["urban_center", "industrial"] and base_risk in ["Moderado", "Alto"]:
-            return "Alto" if base_risk == "Moderado" else "Muy Alto"
+        if area_type in ["urban_center_extreme", "industrial_heavy"]:
+            if base_risk == "Bajo":
+                return "Moderado"
+            elif base_risk == "Moderado":
+                return "Alto"
+            elif base_risk == "Alto":
+                return "Muy Alto"
+        elif area_type in ["urban_center_high", "industrial"]:
+            if base_risk == "Bajo":
+                return "Moderado"
+            elif base_risk == "Moderado":
+                return "Alto"
             
         return base_risk
 
-    def _generate_historical_trend(self, lat: float, lon: float):
+    def _generate_historical_trend(self, lat, lon):
         days = 7
         trend = []
+        area_type = self._classify_area(lat, lon)
         
         for i in range(days):
             date = datetime.utcnow() - timedelta(days=days-i-1)
-            base_no2 = 10 + abs(lat) * 0.3 + np.sin(i * 0.5) * 8
+            base_no2 = self._get_base_no2_for_area(lat, lon, area_type)
+            daily_variation = np.sin(i * 0.8) * 15 + np.random.normal(0, 8)
+            no2_value = max(10, base_no2 + daily_variation)
+            
             trend.append({
                 'date': date.strftime('%Y-%m-%d'),
-                'no2': round(max(5, base_no2 + np.random.normal(0, 3)), 2),
-                'quality': self._calculate_quality(base_no2)
+                'no2': round(no2_value, 2),
+                'quality': self._calculate_quality(no2_value)
             })
         
         return trend
@@ -220,19 +245,44 @@ class AdvancedTempoProcessor:
     def _generate_forecast(self, lat: float, lon: float):
         forecast = []
         current_hour = datetime.utcnow().hour
+        area_type = self._classify_area(lat, lon)
+        base_no2 = self._get_base_no2_for_area(lat, lon, area_type)
         
         for hour in range(24):
             future_hour = (current_hour + hour) % 24
-            traffic_peak = 2.0 if (7 <= future_hour <= 9) or (17 <= future_hour <= 19) else 1.0
-            base_no2 = 8 + abs(lat) * 0.3 * traffic_peak
+            traffic_peak = 1.0
+            if 7 <= future_hour <= 9:
+                traffic_peak = 1.8
+            elif 17 <= future_hour <= 20:
+                traffic_peak = 1.9
+            elif 12 <= future_hour <= 14:
+                traffic_peak = 1.3
+            elif 23 <= future_hour or future_hour <= 5:
+                traffic_peak = 0.6
+            
+            hourly_no2 = base_no2 * traffic_peak + np.random.normal(0, 5)
             
             forecast.append({
                 'hour': future_hour,
-                'no2': round(max(5, base_no2 + np.random.normal(0, 2)), 2),
-                'quality': self._calculate_quality(base_no2)
+                'no2': round(max(10, hourly_no2), 2),
+                'quality': self._calculate_quality(hourly_no2)
             })
         
         return forecast
+
+    def _get_base_no2_for_area(self, lat, lon, area_type):
+        if area_type == "urban_center_extreme":
+            return 120 + np.random.normal(0, 20)
+        elif area_type == "urban_center_high":
+            return 80 + np.random.normal(0, 15)
+        elif area_type == "industrial_heavy":
+            return 90 + np.random.normal(0, 15)
+        elif area_type == "urban_center":
+            return 60 + np.random.normal(0, 12)
+        elif area_type == "industrial":
+            return 70 + np.random.normal(0, 12)
+        else:
+            return 30 + np.random.normal(0, 8)
 
     def _get_openaq_data(self, lat, lon, radius=50000):
         try:
@@ -279,16 +329,53 @@ class AdvancedTempoProcessor:
             return {}
 
     def _simulate_tempo_advanced(self, lat, lon, weather_data):
-        urban_factor = 2.5 if self._is_urban_area(lat, lon) else 1.0
+        area_type = self._classify_area(lat, lon)
+        
+        urban_factor_map = {
+            "urban_center_extreme": 4.5,
+            "urban_center_high": 3.2,
+            "urban_center": 2.0,
+            "industrial_heavy": 3.5,
+            "industrial": 2.5,
+            "residential": 1.0
+        }
+        urban_factor = urban_factor_map.get(area_type, 1.0)
+        
         hour = datetime.utcnow().hour
-        traffic_pattern = 1.0 + 0.5 * np.sin((hour - 8) * np.pi / 12)
+        if 7 <= hour <= 9 or 17 <= hour <= 20:
+            traffic_pattern = 1.8
+        elif 12 <= hour <= 14:
+            traffic_pattern = 1.3
+        elif 23 <= hour or hour <= 5:
+            traffic_pattern = 0.6
+        else:
+            traffic_pattern = 1.0
+        
         wind_speed = weather_data.get('wind_speed', 5)
-        wind_factor = max(0.3, 1.0 - (wind_speed * 0.1))
+        if wind_speed > 15:
+            wind_factor = 0.5
+        elif wind_speed > 10:
+            wind_factor = 0.7
+        elif wind_speed > 5:
+            wind_factor = 0.85
+        else:
+            wind_factor = 1.0
         
-        base_no2 = 8.0 + (abs(lat) * 0.3)
-        final_no2 = base_no2 * urban_factor * traffic_pattern * wind_factor
+        temp = weather_data.get('temperature', 20)
+        if temp < 10:
+            temp_factor = 1.3
+        elif temp > 30:
+            temp_factor = 1.2
+        else:
+            temp_factor = 1.0
         
-        return {'no2': max(1.0, final_no2 + np.random.normal(0, 1.5))}
+        base_no2 = self._get_base_no2_for_area(lat, lon, area_type)
+        
+        final_no2 = base_no2 * urban_factor * traffic_pattern * wind_factor * temp_factor
+        
+        final_no2 = final_no2 + np.random.normal(0, 3)
+        
+        return {'no2': max(5.0, final_no2)}
 
     def _is_urban_area(self, lat, lon):
         major_cities = [
@@ -296,21 +383,35 @@ class AdvancedTempoProcessor:
             (40.7, -74.0),
             (34.0, -118.2),
             (25.7, -100.3),
-            (32.5, -117.0)
+            (32.5, -117.0),
+            (28.6, 77.2),
+            (39.9, 116.4),
         ]
         return any(abs(lat - city[0]) < 2 and abs(lon - city[1]) < 2 for city in major_cities)
 
     def _calculate_quality(self, no2_value):
-        if no2_value < 20: return 'Buena'
-        elif no2_value < 40: return 'Moderada'
-        elif no2_value < 60: return 'Mala'
-        else: return 'Muy Mala'
+        if no2_value < 40:
+            return 'Buena'
+        elif no2_value < 80:
+            return 'Moderada'
+        elif no2_value < 120:
+            return 'Mala'
+        elif no2_value < 160:
+            return 'Muy Mala'
+        else:
+            return 'Peligrosa'
 
     def _calculate_aqi(self, no2_value):
-        if no2_value < 20: return 25
-        elif no2_value < 40: return 50
-        elif no2_value < 60: return 75
-        else: return 100
+        if no2_value < 40:
+            return int(no2_value * 1.25)
+        elif no2_value < 80:
+            return int(50 + (no2_value - 40) * 1.25)
+        elif no2_value < 120:
+            return int(100 + (no2_value - 80) * 1.5)
+        elif no2_value < 160:
+            return int(150 + (no2_value - 120) * 2)
+        else:
+            return min(300, int(200 + (no2_value - 160) * 2.5))
 
     def _get_weather_condition(self, weather_data):
         temp = weather_data.get('temperature', 20)
@@ -320,12 +421,16 @@ class AdvancedTempoProcessor:
 
     def _get_risk_factors(self, area_type, no2_level):
         factors = []
-        if no2_level > 30:
+        if no2_level > 80:
             factors.append("Alta concentración de NO2")
-        if area_type == "urban_center":
-            factors.append("Alta densidad de tráfico")
-        if area_type == "industrial":
+        if no2_level > 120:
+            factors.append("Niveles peligrosos de contaminación")
+        if area_type in ["urban_center_high", "urban_center_extreme"]:
+            factors.append("Alta densidad de tráfico vehicular")
+        if area_type in ["industrial", "industrial_heavy"]:
             factors.append("Proximidad a zonas industriales")
+        if area_type == "urban_center_extreme":
+            factors.append("Zona crítica de contaminación")
         if not factors:
             factors.append("Condiciones normales")
         return factors
@@ -343,12 +448,15 @@ class AdvancedTempoProcessor:
         }
 
     def _get_fallback_dashboard(self, lat, lon):
+        area_type = self._classify_area(lat, lon)
+        fallback_no2 = self._get_base_no2_for_area(lat, lon, area_type)
+        
         return {
             'air_quality': {
-                'no2_tropospheric': 15.0,
+                'no2_tropospheric': round(fallback_no2, 2),
                 'pm25': 15.5,
-                'quality_index': 'Moderada',
-                'aqi_value': 50,
+                'quality_index': self._calculate_quality(fallback_no2),
+                'aqi_value': self._calculate_aqi(fallback_no2),
                 'timestamp': datetime.utcnow().isoformat()
             },
             'weather': {
@@ -358,11 +466,11 @@ class AdvancedTempoProcessor:
                 'condition': 'Templado'
             },
             'vulnerability_analysis': {
-                'area_type': 'residential',
-                'risk_level': 'Moderado',
-                'vulnerable_groups': ['children', 'elderly', 'schools'],
-                'risk_factors': ['Datos limitados disponibles'],
-                'protection_priority': 'Media'
+                'area_type': area_type,
+                'risk_level': self._calculate_risk_level(fallback_no2, area_type),
+                'vulnerable_groups': self._identify_vulnerable_groups(area_type),
+                'risk_factors': self._get_risk_factors(area_type, fallback_no2),
+                'protection_priority': 'Alta' if fallback_no2 > 80 else 'Media'
             },
             'recommendations': {
                 'general': ['Monitorear calidad del aire', 'Evitar zonas de alto tráfico'],
